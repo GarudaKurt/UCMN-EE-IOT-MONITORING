@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Zap, Gauge } from "lucide-react";
+import { Activity, Zap, Gauge, PlugZap } from "lucide-react";
 import MetricCard from "@/components/metric-card/MetricCard";
 import { EnergyGroup } from "../energy/Energy";
 
@@ -44,8 +44,9 @@ export default function EnergyGroupCard({ group, onToggle, disabled }: EnergyGro
         </button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <MetricCard icon={Activity} label="Current" value={reading.ampere} unit="A" accent={color} dim={!isOn} />
+        <MetricCard icon={PlugZap} label="Voltage" value={reading.voltage} unit="V" accent={color} dim={!isOn} />
         <MetricCard icon={Zap} label="Power" value={reading.power} unit="W" accent={color} dim={!isOn} />
         <MetricCard icon={Gauge} label="Energy" value={reading.energy} unit="kWh" accent={color} dim={!isOn} />
       </div>

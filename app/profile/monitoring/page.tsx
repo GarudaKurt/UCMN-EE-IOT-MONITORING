@@ -4,15 +4,14 @@ import { BedDouble, Sofa, Armchair } from "lucide-react";
 import HomeHeader from "@/components/home-header/HomeHeader";
 import BottomNav from "@/components/bottom-nav/BottomNav";
 import RoomEnergyCard from "@/components/romeenergy-card/RomeenergyCard";
-import { useEnergyReadings } from "@/hooks/useEnergyReadings";
-import { roomNameForId } from "@/lib/energy/readings";
+import { useDailyEnergyReadings } from "@/hooks/useDailyEnergyReadings";
 
 // Map each PZEM meter's device_id (as stored in sensors.device_id) to a room.
 // Update the deviceId values to match what your nodered flow writes.
 const ROOMS = [
   {
     id: "master-bedroom",
-    label: "Master Room",
+    label: "Master Bedroom",
     deviceId: "PZEM-MASTER-BEDROOM",
     icon: BedDouble,
     accent: {
@@ -49,14 +48,16 @@ const ROOMS = [
 ];
 
 export default function EnergyHistoryPage() {
-  const { readings, loading, error } = useEnergyReadings();
+  const { readings, loading, error } = useDailyEnergyReadings();
   const roomTotals = ROOMS.map((room) => ({
     ...room,
-    total: readings
-      .filter((reading) => reading.room === roomNameForId(room.id))
-      .reduce((sum, reading) => sum + reading.kWh, 0),
+    total: readings.reduce((sum, reading) => {
+      if (room.id === "sala") return sum + reading.sala_kwh;
+      if (room.id === "living-room") return sum + reading.living_kwh;
+      return sum + reading.master_kwh;
+    }, 0),
   }));
-  const overallTotal = readings.reduce((sum, reading) => sum + reading.kWh, 0);
+  const overallTotal = readings.reduce((sum, reading) => sum + reading.total_kwh, 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-100">

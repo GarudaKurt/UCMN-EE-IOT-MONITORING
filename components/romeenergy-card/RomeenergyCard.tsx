@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown } from "lucide-react";
-import { CurrentReading, roomNameForId } from "@/lib/energy/readings";
+import type { DailyEnergyReading } from "@/hooks/useDailyEnergyReadings";
 
 export interface RoomConfig {
   id: string;
@@ -28,12 +28,19 @@ function dateKey(d: Date) {
   ).padStart(2, "0")}`;
 }
 
-function startOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
+function manilaDateKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
-function startOfNextMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth() + 1, 1);
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 function monthLabel(d: Date) {
@@ -60,7 +67,7 @@ function buildMonthGrid(viewMonth: Date): (Date | null)[][] {
 
 interface RoomEnergyCardProps {
   room: RoomConfig;
-  readings: CurrentReading[];
+  readings: DailyEnergyReading[];
   loading: boolean;
   error: string | null;
 }
@@ -72,30 +79,30 @@ export default function RoomEnergyCard({ room, readings, loading, error }: RoomE
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const todayKey = dateKey(new Date());
-  const roomName = roomNameForId(room.id);
-
-  const roomReadings = useMemo(
-    () => readings.filter((reading) => reading.room === roomName),
-    [readings, roomName]
-  );
+  const todayKey = manilaDateKey();
+  const roomReadings = useMemo(() => readings.map((reading) => ({
+    room: room.label,
+    kWh: room.id === "sala"
+      ? reading.sala_kwh
+      : room.id === "living-room"
+        ? reading.living_kwh
+        : reading.master_kwh,
+    timestamp: reading.reading_date,
+  })), [readings, room.id, room.label]);
 
   const dailyTotals = useMemo(() => {
     const totals = new Map<string, number>();
-    const monthStart = startOfMonth(viewMonth).getTime();
-    const nextMonthStart = startOfNextMonth(viewMonth).getTime();
+    const monthPrefix = `${viewMonth.getFullYear()}-${String(viewMonth.getMonth() + 1).padStart(2, "0")}`;
 
     for (const reading of roomReadings) {
-      const timestamp = new Date(reading.timestamp).getTime();
-      if (timestamp < monthStart || timestamp >= nextMonthStart) continue;
-      const key = dateKey(new Date(reading.timestamp));
-      totals.set(key, (totals.get(key) ?? 0) + reading.kWh);
+      if (!reading.timestamp.startsWith(monthPrefix)) continue;
+      totals.set(reading.timestamp, (totals.get(reading.timestamp) ?? 0) + reading.kWh);
     }
 
     return totals;
   }, [roomReadings, viewMonth]);
 
-  const todayTotal = dailyTotals.get(todayKey) ?? 0;
+  const todayTotal = dailyTotals.get(manilaDateKey()) ?? 0;
 
   const monthTotal = useMemo(
     () => Array.from(dailyTotals.values()).reduce((sum, v) => sum + v, 0),
@@ -244,8 +251,8 @@ export default function RoomEnergyCard({ room, readings, loading, error }: RoomE
                     </thead>
                     <tbody>
                       {tableRows.map((reading) => {
-                        const d = new Date(reading.timestamp);
-                        const key = dateKey(d);
+                        const d = new Date(`${reading.timestamp}T12:00:00+08:00`);
+                        const key = reading.timestamp;
                         const isSelected = key === selectedDay;
                         return (
                           <tr

@@ -11,6 +11,7 @@
 export type GroupId = "sala" | "living-room" | "master-bedroom";
 
 export interface PzemReading {
+  voltage: number; // V
   ampere: number; // A
   power: number; // W
   energy: number; // kWh
@@ -22,6 +23,7 @@ export interface EnergyGroup {
   color: string;
   reading: PzemReading;
   isOn: boolean;
+  updatedAt?: string;
 }
 
 export const ENERGY_GROUP_DEFS: { id: GroupId; name: string; color: string }[] = [
@@ -29,3 +31,9 @@ export const ENERGY_GROUP_DEFS: { id: GroupId; name: string; color: string }[] =
   { id: "living-room", name: "Living Room", color: "#FA7355" },
   { id: "master-bedroom", name: "Master Bedroom", color: "#37B24D" },
 ];
+
+export const SENSOR_TO_GROUP: Record<string, GroupId> = {
+  Sala: "sala",
+  "Living Room": "living-room",
+  "Master Bedroom": "master-bedroom",
+};
