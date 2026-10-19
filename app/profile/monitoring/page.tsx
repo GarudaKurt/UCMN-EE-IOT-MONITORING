@@ -5,6 +5,8 @@ import HomeHeader from "@/components/home-header/HomeHeader";
 import BottomNav from "@/components/bottom-nav/BottomNav";
 import RoomEnergyCard from "@/components/romeenergy-card/RomeenergyCard";
 import { useDailyEnergyReadings } from "@/hooks/useDailyEnergyReadings";
+import { useEnergyTargetStatus } from "@/hooks/useEnergyTargetStatus";
+import type { GroupId } from "@/components/energy/Energy";
 
 // Map each PZEM meter's device_id (as stored in sensors.device_id) to a room.
 // Update the deviceId values to match what your nodered flow writes.
@@ -49,6 +51,7 @@ const ROOMS = [
 
 export default function EnergyHistoryPage() {
   const { readings, loading, error } = useDailyEnergyReadings();
+  const { statuses, error: targetError } = useEnergyTargetStatus();
   const roomTotals = ROOMS.map((room) => ({
     ...room,
     total: readings.reduce((sum, reading) => {
@@ -68,7 +71,7 @@ export default function EnergyHistoryPage() {
           Sensor reading history and energy totals for each monitored room.
         </p>
 
-        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+        {(error || targetError) && <p className="text-sm font-medium text-red-600">{error ?? targetError}</p>}
 
         <section className="rounded-2xl bg-neutral-900 p-4 text-white">
           <div className="flex items-center justify-between">
@@ -86,6 +89,31 @@ export default function EnergyHistoryPage() {
                 </p>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="rounded-2xl bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-neutral-900">Monthly target status</h2>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {ROOMS.map((room) => {
+              const target = statuses.find((item) => item.room_id === (room.id as GroupId));
+              const remaining = Math.max(0, (target?.target_kwh ?? 0) - (target?.consumed_kwh ?? 0));
+              const label = target?.status === "paused"
+                ? "Paused"
+                : target?.status === "target_reached"
+                  ? "Target Reached"
+                  : "Within Target";
+              return (
+                <div key={room.id} className="rounded-xl bg-neutral-50 p-3">
+                  <p className="text-xs font-medium text-neutral-600">{room.label}</p>
+                  <p className="mt-1 text-sm font-semibold text-neutral-900">{label}</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {target?.consumed_kwh.toFixed(2) ?? "0.00"} / {target?.target_kwh.toFixed(2) ?? "0.00"} kWh
+                  </p>
+                  <p className="text-xs text-neutral-500">{remaining.toFixed(2)} kWh remaining</p>
+                </div>
+              );
+            })}
           </div>
         </section>
 

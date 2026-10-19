@@ -4,9 +4,12 @@ import HomeHeader from "@/components/home-header/HomeHeader";
 import BottomNav from "@/components/bottom-nav/BottomNav";
 import { useEnergyStatus } from "@/components/useenergy-status/Useenergystatus";
 import EnergyGroupCard from "@/components/energygroup-card/Energygroupcard";
+import EnergyTargetAlert from "@/components/energy-target-alert/EnergyTargetAlert";
+import { useEnergyTargetStatus } from "@/hooks/useEnergyTargetStatus";
 
 export default function EnergyPage() {
   const { groups, loading, error, toggleGroup } = useEnergyStatus();
+  const { statuses, error: targetError, decide } = useEnergyTargetStatus();
 
   const totalPower = groups.reduce((sum, g) => sum + (g.isOn ? g.reading.power : 0), 0);
   const totalEnergy = groups.reduce((sum, g) => sum + g.reading.energy, 0);
@@ -35,7 +38,7 @@ export default function EnergyPage() {
           </p>
         </div>
 
-        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+        {(error || targetError) && <p className="text-sm font-medium text-red-600">{error ?? targetError}</p>}
 
         <div className="flex flex-col gap-3">
           {groups.map((group) => (
@@ -45,6 +48,7 @@ export default function EnergyPage() {
       </main>
 
       <BottomNav />
+      <EnergyTargetAlert statuses={statuses} onDecision={decide} />
     </div>
   );
 }
