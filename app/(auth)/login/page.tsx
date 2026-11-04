@@ -8,24 +8,25 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 
-
 const loginSchema = z.object({
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 export default function LoginPage() {
-  
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  
-  const router = useRouter()
+
+  const router = useRouter();
   const supabase = createClient();
 
-  
-   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -49,7 +50,9 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     console.log("Logged-in user id:", user?.id);
     router.push("/home");
     router.refresh();
@@ -58,7 +61,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12">
       <div className="w-full max-w-sm">
-        <h1 className="text-3xl font-extrabold leading-tight text-red-500">
+        <h1 className="text-3xl font-extrabold leading-tight text-orange-500">
           Let&apos;s sign you in.
         </h1>
         <p className="mt-2 text-sm text-neutral-400">Welcome back.</p>
@@ -70,7 +73,7 @@ export default function LoginPage() {
             type="email"
             name="email"
             value={email}
-            onChange={(e)=>setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Your email"
             autoComplete="email"
             required
@@ -81,21 +84,24 @@ export default function LoginPage() {
             type="password"
             name="password"
             value={password}
-            onChange={(e)=>setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
             autoComplete="current-password"
             required
           />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="-mt-2 mb-6 text-right">
-            <Link href="/forgot-password" className="text-sm font-semibold text-red-500 hover:underline">
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-orange-500 hover:underline"
+            >
               Forgot password?
             </Link>
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-full bg-red-500 py-4 text-sm font-semibold text-white shadow-md shadow-red-200 transition hover:bg-red-600 active:scale-[0.99]"
+            className="w-full rounded-full bg-orange-500 py-4 text-sm font-semibold text-white shadow-md shadow-red-200 transition hover:bg-red-600 active:scale-[0.99]"
           >
             {loading ? "Signing in..." : <>Login</>}
           </button>
@@ -103,7 +109,10 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-neutral-500">
           Are you new here?{" "}
-          <Link href="/register" className="font-semibold text-red-500 hover:underline">
+          <Link
+            href="/register"
+            className="font-semibold text-orange-500 hover:underline"
+          >
             Sign up
           </Link>
         </p>

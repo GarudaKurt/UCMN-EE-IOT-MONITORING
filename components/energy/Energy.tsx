@@ -26,14 +26,9 @@ export interface EnergyGroup {
   updatedAt?: string;
 }
 
-export const ENERGY_GROUP_DEFS: { id: GroupId; name: string; color: string }[] = [
-  { id: "sala", name: "Sala", color: "#5242FF" },
-  { id: "living-room", name: "Living Room", color: "#FA7355" },
-  { id: "master-bedroom", name: "Master Bedroom", color: "#37B24D" },
-];
+export const ENERGY_GROUP_DEFS: { id: GroupId; name: string; color: string }[] =
+  [{ id: "Rental house", name: "Rental House", color: "#e2ac36" }];
 
 export const SENSOR_TO_GROUP: Record<string, GroupId> = {
-  Sala: "sala",
-  "Living Room": "living-room",
-  "Master Bedroom": "master-bedroom",
+  Rental: "Rental House",
 };

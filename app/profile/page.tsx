@@ -9,12 +9,12 @@ const MENU_ITEMS = [
 ];
 
 export default function ProfilePage() {
-const handleLogout = () => {
-  window.location.href = "/logout";
-};
+  const handleLogout = () => {
+    window.location.href = "/logout";
+  };
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-100">
+    <div className="flex min-h-screen flex-col bg-white">
       <PageHeader title="Profile" />
 
       <main className="flex-1 px-5 pt-2">
@@ -27,7 +27,7 @@ const handleLogout = () => {
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-8 w-full rounded-full border border-red-300 bg-white py-3.5 text-sm font-semibold text-red-500 transition hover:bg-red-50"
+          className="mt-8 w-full rounded-full border  bg-orange-500 py-3.5 text-sm font-semibold text-white transition hover:bg-orange-50"
         >
           Logout
         </button>

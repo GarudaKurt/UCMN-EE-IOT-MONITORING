@@ -10,7 +10,7 @@ interface TabItem {
 
 const TABS: TabItem[] = [
   { label: "Home", href: "/home", icon: Home },
-  { label: "Monitor", href: "/profile/monitoring", icon: BarChart },
+  { label: "Configuration", href: "/profile/monitoring", icon: BarChart },
   { label: "Profile", href: "/profile", icon: User },
 ];
 
@@ -26,7 +26,7 @@ export default function BottomNav() {
             key={href}
             href={href}
             className={`flex flex-col items-center gap-1 px-3 py-1 text-[11px] ${
-              active ? "text-red-500" : "text-neutral-400"
+              active ? "text-black-500" : "text-neutral-400"
             }`}
           >
             <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 2} />

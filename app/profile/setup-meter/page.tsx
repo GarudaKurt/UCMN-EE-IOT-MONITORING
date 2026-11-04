@@ -7,13 +7,22 @@ import FormField from "@/components/form-field/FormFields";
 import BottomNav from "@/components/bottom-nav/BottomNav";
 import DateCalendarField from "@/components/monthcalendar-field/DateCalendarField";
 import { createClient } from "@/lib/supabase/client";
-import { GroupId, ENERGY_GROUP_DEFS } from "@/components/energy/Energy";
 
 function todayIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate()
+    now.getDate(),
   ).padStart(2, "0")}`;
+}
+
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "—";
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function toNumber(value: string): number {
@@ -21,19 +30,13 @@ function toNumber(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-type RoomKwh = Record<GroupId, string>;
-
 export default function EnergyTargetSetup() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [targetStartDate, setTargetStartDate] = useState(todayIso());
   const [targetEndDate, setTargetEndDate] = useState(todayIso());
-  const [roomKwh, setRoomKwh] = useState<RoomKwh>({
-    sala: "",
-    "living-room": "",
-    "master-bedroom": "",
-  });
+  const [targetKwh, setTargetKwh] = useState("");
   const [ratePerKwh, setRatePerKwh] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -55,9 +58,7 @@ export default function EnergyTargetSetup() {
 
       const { data: row, error: rowError } = await supabase
         .from("setup_energy")
-        .select(
-          "target_start_date, target_end_date, sala_kwh, living_room_kwh, master_bedroom_kwh, rate_per_kwh"
-        )
+        .select("target_start_date, target_end_date, target_kwh, rate_per_kwh")
         .eq("user_id", user.id)
         .single();
 
@@ -66,12 +67,10 @@ export default function EnergyTargetSetup() {
       } else {
         setTargetStartDate(row?.target_start_date ?? todayIso());
         setTargetEndDate(row?.target_end_date ?? todayIso());
-        setRoomKwh({
-          sala: row?.sala_kwh != null ? String(row.sala_kwh) : "",
-          "living-room": row?.living_room_kwh != null ? String(row.living_room_kwh) : "",
-          "master-bedroom": row?.master_bedroom_kwh != null ? String(row.master_bedroom_kwh) : "",
-        });
-        setRatePerKwh(row?.rate_per_kwh != null ? String(row.rate_per_kwh) : "");
+        setTargetKwh(row?.target_kwh != null ? String(row.target_kwh) : "");
+        setRatePerKwh(
+          row?.rate_per_kwh != null ? String(row.rate_per_kwh) : "",
+        );
       }
 
       setLoading(false);
@@ -80,8 +79,7 @@ export default function EnergyTargetSetup() {
     loadTarget();
   }, [supabase]);
 
-  const totalKwh =
-    toNumber(roomKwh.sala) + toNumber(roomKwh["living-room"]) + toNumber(roomKwh["master-bedroom"]);
+  const totalKwh = toNumber(targetKwh);
   const totalPeso = totalKwh * toNumber(ratePerKwh);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -111,12 +109,10 @@ export default function EnergyTargetSetup() {
         user_id: user.id,
         target_start_date: targetStartDate,
         target_end_date: targetEndDate,
-        sala_kwh: toNumber(roomKwh.sala),
-        living_room_kwh: toNumber(roomKwh["living-room"]),
-        master_bedroom_kwh: toNumber(roomKwh["master-bedroom"]),
+        target_kwh: toNumber(targetKwh),
         rate_per_kwh: toNumber(ratePerKwh),
       },
-      { onConflict: "user_id" }
+      { onConflict: "user_id" },
     );
 
     setSaving(false);
@@ -132,93 +128,117 @@ export default function EnergyTargetSetup() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-100">
-        <p className="text-sm text-neutral-500">Loading energy target...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#EEF1EC]">
+        <p className="text-sm text-[#6B7A70]">Loading energy target...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-100">
+    <div className="flex min-h-screen flex-col bg-[#EEF1EC]">
       <PageHeader title="Setup Energy Target" showBack />
 
-      <form onSubmit={handleSave} className="flex flex-1 flex-col px-5 pt-2">
-        <div className="flex-1">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <DateCalendarField
-              label="Start Date"
-              name="targetStartDate"
-              value={targetStartDate}
-              onChange={setTargetStartDate}
-            />
-            <DateCalendarField
-              label="End Date"
-              name="targetEndDate"
-              value={targetEndDate}
-              onChange={setTargetEndDate}
-            />
-          </div>
-
-          {ENERGY_GROUP_DEFS.map((group) => (
-            <div key={group.id} className="mb-4 flex items-center gap-3">
-              <span
-                className="mt-6 h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: group.color }}
+      <form onSubmit={handleSave} className="flex flex-1 flex-col px-4 pt-2">
+        <div className="flex flex-1 flex-col gap-3">
+          {/* Target period */}
+          <section className="rounded-3xl border border-[#E1E6DF] bg-white p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <DateCalendarField
+                label="Start Date"
+                name="targetStartDate"
+                value={targetStartDate}
+                onChange={setTargetStartDate}
               />
-              <div className="flex-1">
-                <FormField
-                  label={`${group.name} Target (kWh)`}
-                  name={`${group.id}Kwh`}
-                  type="text"
-                  inputMode="decimal"
-                  value={roomKwh[group.id]}
-                  onChange={(e) =>
-                    setRoomKwh((prev) => ({ ...prev, [group.id]: e.target.value }))
-                  }
-                />
+              <DateCalendarField
+                label="End Date"
+                name="targetEndDate"
+                value={targetEndDate}
+                onChange={setTargetEndDate}
+              />
+            </div>
+          </section>
+
+          {/* Target and rate */}
+          <section className="rounded-3xl border border-[#E1E6DF] bg-white p-4">
+            <FormField
+              label="Rental House Target (kWh)"
+              name="targetKwh"
+              type="text"
+              inputMode="decimal"
+              value={targetKwh}
+              onChange={(e) => setTargetKwh(e.target.value)}
+            />
+            <FormField
+              label="Rate (₱ per kWh)"
+              name="ratePerKwh"
+              type="text"
+              inputMode="decimal"
+              value={ratePerKwh}
+              onChange={(e) => setRatePerKwh(e.target.value)}
+            />
+          </section>
+
+          {/* Summary */}
+          <section
+            className="rounded-3xl bg-[#2c2c2c] p-5 text-[#E9EFE9]"
+            aria-label="Target summary"
+          >
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm text-[#9DB0A5]">Estimated cost</span>
+              <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                ₱
+                {totalPeso.toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#9DB0A5]">Total target</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {totalKwh.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  kWh
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#9DB0A5]">Start date</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatDate(targetStartDate)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#9DB0A5]">End date</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatDate(targetEndDate)}
+                </span>
               </div>
             </div>
-          ))}
+          </section>
 
-          <FormField
-            label="Rate (₱ per kWh)"
-            name="ratePerKwh"
-            type="text"
-            inputMode="decimal"
-            value={ratePerKwh}
-            onChange={(e) => setRatePerKwh(e.target.value)}
-          />
-
-          <div className="mb-4 rounded-xl bg-neutral-900 px-4 py-4 text-white">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-neutral-400">Total target</span>
-              <span className="text-sm font-semibold">
-                {totalKwh.toLocaleString(undefined, { maximumFractionDigits: 2 })} kWh
-              </span>
-            </div>
-            <div className="mt-1 flex items-center justify-between">
-              <span className="text-xs text-neutral-400">Estimated cost</span>
-              <span className="text-lg font-semibold">
-                ₱{totalPeso.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-
-          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+            >
+              {error}
+            </p>
+          )}
         </div>
 
-        <div className="flex gap-3 pb-[100px] sm:pb-0">
+        <div className="flex gap-3 pt-4 pb-[100px] sm:pb-4">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 rounded-full border border-neutral-300 bg-neutral-100 py-3.5 text-sm font-semibold text-neutral-400"
+            className="flex-1 rounded-2xl border border-[#CBD3CA] py-3.5 text-sm font-semibold text-[#14201B] transition-colors hover:bg-[#E8ECE6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14201B] focus-visible:ring-offset-2"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-full bg-neutral-900 py-3.5 text-sm font-semibold text-white shadow-md shadow-neutral-300 transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-2xl bg-[#14201B] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#22332B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14201B] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save"}
           </button>
