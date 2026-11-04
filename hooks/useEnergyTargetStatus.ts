@@ -63,7 +63,8 @@ export function useEnergyTargetStatus() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const load = async () => {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser();
       if (cancelled) return;
       if (authError || !authData.user) {
         setError("Could not load energy target status.");
@@ -72,35 +73,50 @@ export function useEnergyTargetStatus() {
       }
 
       const monthStart = monthStartInManila();
-      await supabase.rpc("refresh_energy_target_status", { p_month_start: monthStart });
+      await supabase.rpc("refresh_energy_target_status", {
+        p_month_start: monthStart,
+      });
       const { data, error: statusError } = await supabase
         .from(TABLE)
-        .select("id, user_id, room_id, month_start, target_kwh, consumed_kwh, status, decision, reached_at, notified_at, decided_at, paused_at")
+        .select(
+          "id, user_id, room_id, month_start, target_kwh, consumed_kwh, status, decision, reached_at, notified_at, decided_at, paused_at",
+        )
         .eq("user_id", authData.user.id)
         .eq("month_start", monthStart)
         .order("room_id");
 
       if (cancelled) return;
       if (statusError) setError("Could not load energy target status.");
-      else setStatuses(((data ?? []) as Record<string, unknown>[]).map(normalize));
+      else
+        setStatuses(((data ?? []) as Record<string, unknown>[]).map(normalize));
       setLoading(false);
 
       channel = supabase
         .channel("energy_target_status_changes")
-        .on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          table: TABLE,
-          filter: `user_id=eq.${authData.user.id}`,
-        }, (payload) => {
-          if (payload.eventType === "DELETE") {
-            setStatuses((current) => current.filter((item) => item.id !== Number(payload.old?.id)));
-            return;
-          }
-          const next = normalize(payload.new as Record<string, unknown>);
-          if (next.month_start !== monthStart) return;
-          setStatuses((current) => [...current.filter((item) => item.id !== next.id), next].sort((a, b) => a.room_id.localeCompare(b.room_id)));
-        })
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: TABLE,
+            filter: `user_id=eq.${authData.user.id}`,
+          },
+          (payload) => {
+            if (payload.eventType === "DELETE") {
+              setStatuses((current) =>
+                current.filter((item) => item.id !== Number(payload.old?.id)),
+              );
+              return;
+            }
+            const next = normalize(payload.new as Record<string, unknown>);
+            if (next.month_start !== monthStart) return;
+            setStatuses((current) =>
+              [...current.filter((item) => item.id !== next.id), next].sort(
+                (a, b) => a.room_id.localeCompare(b.room_id),
+              ),
+            );
+          },
+        )
         .subscribe();
     };
 
@@ -111,45 +127,49 @@ export function useEnergyTargetStatus() {
     };
   }, [supabase]);
 
-  const decide = useCallback(async (roomId: GroupId, decision: Exclude<TargetDecision, "pending">) => {
-    setError(null);
-    const status = decision === "pause" ? "paused" : "target_reached";
+  const decide = useCallback(
+    async (roomId: GroupId, decision: Exclude<TargetDecision, "pending">) => {
+      setError(null);
 
-    if (decision === "pause") {
-      const { error: toggleError } = await supabase
-        .from("pzem_status")
-        .update({ is_on: false })
-        .eq("group_id", roomId);
-      if (toggleError) {
-        setError("The room could not be paused.");
+      // One database call updates the decision and the relay together
+      // (pause = relay off, continue = relay on), so they can never disagree.
+      const { error: rpcError } = await supabase.rpc(
+        "set_energy_target_decision",
+        {
+          p_room_id: roomId,
+          p_decision: decision,
+        },
+      );
+
+      if (rpcError) {
+        setError(
+          decision === "pause"
+            ? "The room could not be paused."
+            : "The room could not be resumed.",
+        );
         return false;
       }
-    }
 
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData.user) {
-      setError("Your session expired. Please log in again.");
-      return false;
-    }
-
-    const { error: updateError } = await supabase
-      .from(TABLE)
-      .update({
-        decision,
-        status,
-        decided_at: new Date().toISOString(),
-        paused_at: decision === "pause" ? new Date().toISOString() : null,
-      })
-      .eq("user_id", authData.user.id)
-      .eq("room_id", roomId)
-      .eq("month_start", monthStartInManila());
-
-    if (updateError) {
-      setError("Could not save your energy target decision.");
-      return false;
-    }
-    return true;
-  }, [supabase]);
+      // Reflect the change immediately; realtime will confirm it.
+      const monthStart = monthStartInManila();
+      const nowIso = new Date().toISOString();
+      setStatuses((current) =>
+        current.map((item) =>
+          item.room_id === roomId && item.month_start === monthStart
+            ? {
+                ...item,
+                decision,
+                status: decision === "pause" ? "paused" : "target_reached",
+                decided_at: nowIso,
+                paused_at: decision === "pause" ? nowIso : null,
+              }
+            : item,
+        ),
+      );
+      return true;
+    },
+    [supabase],
+  );
 
   return { statuses, loading, error, decide };
 }

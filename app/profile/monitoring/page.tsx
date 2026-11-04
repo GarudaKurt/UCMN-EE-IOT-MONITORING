@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { House } from "lucide-react";
 import BottomNav from "@/components/bottom-nav/BottomNav";
 import RoomEnergyCard from "@/components/romeenergy-card/RomeenergyCard";
@@ -36,7 +37,15 @@ const fmt = (value: number) =>
 
 export default function EnergyHistoryPage() {
   const { readings, loading, error } = useDailyEnergyReadings();
-  const { statuses, error: targetError } = useEnergyTargetStatus();
+  const { statuses, error: targetError, decide } = useEnergyTargetStatus();
+  const [savingRoom, setSavingRoom] = useState<GroupId | null>(null);
+
+  // Switch ON = continue monitoring, OFF = pause power.
+  const handleToggle = async (roomId: GroupId, shouldContinue: boolean) => {
+    setSavingRoom(roomId);
+    await decide(roomId, shouldContinue ? "continue" : "pause");
+    setSavingRoom(null);
+  };
 
   const roomTotals = ROOMS.map((room) => ({
     ...room,
@@ -48,7 +57,7 @@ export default function EnergyHistoryPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#EEF1EC]">
+    <div className="flex min-h-screen flex-col bg-white">
       <main className="flex flex-1 flex-col gap-4 px-4 pb-6 pt-4">
         {(error || targetError) && (
           <p
@@ -107,6 +116,13 @@ export default function EnergyHistoryPage() {
                     ? "Target Reached"
                     : "Within Target";
               const reached = target?.status === "target_reached";
+              // The toggle appears once the target has been reached. Pause is
+              // the default: it only reads "Continue" after the user chose it.
+              const canDecide =
+                target?.status === "target_reached" ||
+                target?.status === "paused";
+              const isContinuing = target?.decision === "continue";
+              const isSaving = savingRoom === room.id;
               return (
                 <div key={room.id} className="rounded-2xl bg-[#F4F6F2] p-4">
                   <div className="flex items-center justify-between">
@@ -145,6 +161,49 @@ export default function EnergyHistoryPage() {
                   <p className="text-xs tabular-nums text-[#6B7A70]">
                     {remaining.toFixed(2)} kWh remaining
                   </p>
+
+                  {canDecide && (
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#DDE3DC] pt-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#14201B]">
+                          {isContinuing ? "Continue monitoring" : "Pause power"}
+                        </p>
+                        <p className="text-xs text-[#6B7A70]">
+                          {isContinuing
+                            ? "Power stays on past your target. Switch off to pause."
+                            : target?.decision === "pause"
+                              ? "Power is paused. Switch on to continue."
+                              : "Paused automatically when the target was reached. Switch on to continue."}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isContinuing}
+                        aria-label={
+                          isContinuing
+                            ? `Pause ${room.label}`
+                            : `Continue monitoring ${room.label}`
+                        }
+                        onClick={() => handleToggle(room.id, !isContinuing)}
+                        disabled={isSaving}
+                        className="relative flex h-7 w-12 shrink-0 items-center overflow-hidden rounded-full p-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14201B] focus-visible:ring-offset-2 disabled:opacity-50"
+                        style={{
+                          backgroundColor: isContinuing ? "#2F9E6B" : "#C5CCC3",
+                        }}
+                      >
+                        <span
+                          className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-sm transition-transform"
+                          style={{
+                            transform: isContinuing
+                              ? "translateX(20px)"
+                              : "translateX(0)",
+                          }}
+                        />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
