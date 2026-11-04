@@ -6,9 +6,7 @@ import type { EnergyTargetStatus } from "@/hooks/useEnergyTargetStatus";
 import type { GroupId } from "@/components/energy/Energy";
 
 const ROOM_NAMES: Record<GroupId, string> = {
-  sala: "Sala",
-  "living-room": "Living Room",
-  "master-bedroom": "Master Bedroom",
+  "rental-house": "Rental House",
 };
 
 interface EnergyTargetAlertProps {
