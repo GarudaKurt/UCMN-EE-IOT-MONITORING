@@ -135,7 +135,7 @@ export default function EnergyTargetSetup() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#EEF1EC]">
+    <div className="flex min-h-screen flex-col bg-white">
       <PageHeader title="Setup Energy Target" showBack />
 
       <form onSubmit={handleSave} className="flex flex-1 flex-col px-4 pt-2">

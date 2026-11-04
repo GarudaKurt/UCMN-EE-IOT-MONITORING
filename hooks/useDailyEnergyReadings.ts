@@ -6,22 +6,19 @@ import { createClient } from "@/lib/supabase/client";
 export interface DailyEnergyReading {
   id: number;
   reading_date: string;
-  sala_kwh: number;
-  living_kwh: number;
-  master_kwh: number;
-  total_kwh: number;
+  rental_kwh: number;
+  total_kwh: number; // kept equal to rental_kwh by the database
 }
 
 const TABLE = "current_kwh_readings";
 
 function normalize(row: Record<string, unknown>): DailyEnergyReading {
+  const rental = Number(row.rental_kwh ?? row.total_kwh ?? 0);
   return {
     id: Number(row.id),
     reading_date: String(row.reading_date),
-    sala_kwh: Number(row.sala_kwh ?? 0),
-    living_kwh: Number(row.living_kwh ?? 0),
-    master_kwh: Number(row.master_kwh ?? 0),
-    total_kwh: Number(row.total_kwh ?? 0),
+    rental_kwh: rental,
+    total_kwh: Number(row.total_kwh ?? rental),
   };
 }
 
@@ -36,7 +33,7 @@ export function useDailyEnergyReadings() {
     const load = async () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE)
-        .select("id, reading_date, sala_kwh, living_kwh, master_kwh, total_kwh")
+        .select("id, reading_date, rental_kwh, total_kwh")
         .order("reading_date", { ascending: true });
 
       if (cancelled) return;
@@ -52,15 +49,24 @@ export function useDailyEnergyReadings() {
 
     const channel = supabase
       .channel("current_kwh_readings_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, (payload) => {
-        const row = payload.new as Record<string, unknown>;
-        if (!row?.reading_date) return;
-        setReadings((previous) => {
-          const next = normalize(row);
-          const withoutCurrent = previous.filter((item) => item.id !== next.id && item.reading_date !== next.reading_date);
-          return [...withoutCurrent, next].sort((a, b) => a.reading_date.localeCompare(b.reading_date));
-        });
-      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: TABLE },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>;
+          if (!row?.reading_date) return;
+          setReadings((previous) => {
+            const next = normalize(row);
+            const withoutCurrent = previous.filter(
+              (item) =>
+                item.id !== next.id && item.reading_date !== next.reading_date,
+            );
+            return [...withoutCurrent, next].sort((a, b) =>
+              a.reading_date.localeCompare(b.reading_date),
+            );
+          });
+        },
+      )
       .subscribe();
 
     return () => {
