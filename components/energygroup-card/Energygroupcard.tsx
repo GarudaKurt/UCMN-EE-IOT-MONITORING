@@ -12,6 +12,11 @@ interface EnergyGroupCardProps {
 
 // Preserve the complete live numeric value; do not round telemetry for display.
 const fmt = (value: number) => (Object.is(value, -0) ? "0" : String(value));
+const fmtVoltage = (value: number) =>
+  value.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 
 interface SecondaryProps {
   icon: LucideIcon;
@@ -116,7 +121,7 @@ export default function EnergyGroupCard({
             <Secondary
               icon={PlugZap}
               label="Voltage"
-              value={fmt(reading.voltage)}
+              value={fmtVoltage(reading.voltage)}
               unit="V"
             />
             <Secondary
