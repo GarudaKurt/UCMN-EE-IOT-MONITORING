@@ -21,7 +21,7 @@ const ROOMS: {
   {
     id: "rental-house",
     label: "Rental House",
-    deviceId: "PZEM-RENTAL",
+    deviceId: "esp32-iot-meter",
     icon: House,
     accent: {
       chipBg: "bg-amber-50",

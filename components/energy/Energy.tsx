@@ -12,7 +12,7 @@ export type GroupId = "rental-house";
 
 export interface PzemReading {
   voltage: number; // V
-  ampere: number; // A
+  current: number; // A
   power: number; // W
   energy: number; // kWh
 }
@@ -31,4 +31,5 @@ export const ENERGY_GROUP_DEFS: { id: GroupId; name: string; color: string }[] =
 
 export const SENSOR_TO_GROUP: Record<string, GroupId> = {
   Rental: "rental-house",
+  "Rental House": "rental-house",
 };
