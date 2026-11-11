@@ -49,6 +49,10 @@ function monthLabel(d: Date) {
   return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+function formatKwh(value: number) {
+  return (Object.is(value, -0) ? 0 : value).toFixed(3);
+}
+
 /** Sunday-first, blank-padded grid of the given month, nulls outside the month */
 function buildMonthGrid(viewMonth: Date): (Date | null)[][] {
   const first = startOfMonth(viewMonth);
@@ -175,7 +179,7 @@ export default function RoomEnergyCard({
 
         <span className="text-right">
           <span className="block text-2xl font-semibold tracking-tight tabular-nums text-[#14201B]">
-            {todayTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            {formatKwh(todayTotal)}
             <span className="ml-1 text-xs font-normal tracking-normal text-[#6B7A70]">
               kWh
             </span>
@@ -251,9 +255,9 @@ export default function RoomEnergyCard({
                       >
                         <span>{day.getDate()}</span>
                         <span
-                          className={`mt-0.5 tabular-nums ${kwh ? "font-medium" : "text-[#C5CCC3]"}`}
+                          className={`mt-0.5 tabular-nums ${kwh !== undefined ? "font-medium" : "text-[#C5CCC3]"}`}
                         >
-                          {kwh ? kwh.toFixed(1) : "–"}
+                          {kwh !== undefined ? formatKwh(kwh) : "–"}
                         </span>
                       </button>
                     );
@@ -264,9 +268,7 @@ export default function RoomEnergyCard({
               <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#F4F6F2] px-4 py-3 text-sm">
                 <span className="text-[#56655C]">Month total</span>
                 <span className="font-semibold tabular-nums text-[#14201B]">
-                  {monthTotal.toLocaleString(undefined, {
-                    maximumFractionDigits: 2,
-                  })}{" "}
+                  {formatKwh(monthTotal)}{" "}
                   kWh
                 </span>
               </div>
@@ -310,9 +312,7 @@ export default function RoomEnergyCard({
                               })}
                             </td>
                             <td className="px-3 py-2.5 text-right font-medium tabular-nums text-[#14201B]">
-                              {reading.kWh.toLocaleString(undefined, {
-                                maximumFractionDigits: 2,
-                              })}
+                              {formatKwh(reading.kWh)}
                             </td>
                           </tr>
                         );
