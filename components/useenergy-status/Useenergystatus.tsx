@@ -53,7 +53,7 @@ function toGroups(
       isOn: toggleRow?.is_on ?? false,
       reading: {
         voltage: Number(liveRow?.voltage_v ?? liveRow?.voltage ?? 0),
-        ampere: Number(liveRow?.current_a ?? liveRow?.current ?? 0),
+        current: Number(liveRow?.current_a ?? liveRow?.current ?? 0),
         power: Number(liveRow?.power_w ?? 0),
         energy: Number(liveRow?.energy_kwh ?? 0),
       },
@@ -136,8 +136,8 @@ export function useEnergyStatus() {
                   voltage: Number(
                     row?.voltage_v ?? row?.voltage ?? group.reading.voltage,
                   ),
-                  ampere: Number(
-                    row?.current_a ?? row?.current ?? group.reading.ampere,
+                  current: Number(
+                    row?.current_a ?? row?.current ?? group.reading.current,
                   ),
                   power: Number(row?.power_w ?? group.reading.power),
                   energy: Number(row?.energy_kwh ?? group.reading.energy),

@@ -10,8 +10,8 @@ interface EnergyGroupCardProps {
   disabled?: boolean;
 }
 
-const fmt = (value: number, digits: number) =>
-  value.toLocaleString(undefined, { maximumFractionDigits: digits });
+// Preserve the complete live numeric value; do not round telemetry for display.
+const fmt = (value: number) => (Object.is(value, -0) ? "0" : String(value));
 
 interface SecondaryProps {
   icon: LucideIcon;
@@ -97,7 +97,7 @@ export default function EnergyGroupCard({
                 Power
               </div>
               <p className="mt-1 text-4xl font-semibold leading-none tracking-tight tabular-nums text-[#14201B]">
-                {fmt(reading.power, 1)}
+                {fmt(reading.power)}
                 <span className="ml-1.5 text-base font-normal tracking-normal text-[#6B7A70]">
                   W
                 </span>
@@ -110,19 +110,19 @@ export default function EnergyGroupCard({
             <Secondary
               icon={Activity}
               label="Current"
-              value={fmt(reading.ampere, 2)}
+              value={fmt(reading.current)}
               unit="A"
             />
             <Secondary
               icon={PlugZap}
               label="Voltage"
-              value={fmt(reading.voltage, 1)}
+              value={fmt(reading.voltage)}
               unit="V"
             />
             <Secondary
               icon={Gauge}
               label="Energy"
-              value={fmt(reading.energy, 2)}
+              value={fmt(reading.energy)}
               unit="kWh"
             />
           </div>

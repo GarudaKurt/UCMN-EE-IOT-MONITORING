@@ -7,6 +7,9 @@ import EnergyGroupCard from "@/components/energygroup-card/Energygroupcard";
 import EnergyTargetAlert from "@/components/energy-target-alert/EnergyTargetAlert";
 import { useEnergyTargetStatus } from "@/hooks/useEnergyTargetStatus";
 
+const formatLiveValue = (value: number) =>
+  Object.is(value, -0) ? "0" : String(value);
+
 export default function EnergyPage() {
   const { groups, loading, error, toggleGroup } = useEnergyStatus();
   const { statuses, error: targetError, decide } = useEnergyTargetStatus();
@@ -49,7 +52,7 @@ export default function EnergyPage() {
           </div>
 
           <p className="mt-3 flex items-baseline text-5xl font-semibold leading-none tracking-tight tabular-nums">
-            {totalPower.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            {formatLiveValue(totalPower)}
             <span className="ml-2 text-lg font-normal tracking-normal text-[#9DB0A5]">
               W
             </span>
@@ -89,9 +92,7 @@ export default function EnergyPage() {
 
           <p className="mt-5 border-t border-white/10 pt-4 text-sm text-[#9DB0A5]">
             <span className="font-semibold tabular-nums text-[#E9EFE9]">
-              {totalEnergy.toLocaleString(undefined, {
-                maximumFractionDigits: 2,
-              })}
+              {formatLiveValue(totalEnergy)}
             </span>{" "}
             kWh consumed total
           </p>

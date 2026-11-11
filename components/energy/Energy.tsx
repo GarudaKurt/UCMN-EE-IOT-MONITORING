@@ -2,7 +2,7 @@
 // Assumed table: "pzem_status"
 //   id          uuid / bigint (pk)
 //   group_id    text            -- 'rental-house'
-//   ampere      numeric         -- live current reading, in Amps
+//   current      numeric         -- live current reading, in Amps
 //   power       numeric         -- live power reading, in Watts
 //   energy      numeric         -- accumulated energy, in kWh
 //   is_on       boolean         -- relay/output state for the rental house
